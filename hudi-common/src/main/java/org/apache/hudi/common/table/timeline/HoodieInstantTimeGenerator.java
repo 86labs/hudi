@@ -45,6 +45,10 @@ public class HoodieInstantTimeGenerator {
   // Unfortunately millisecond format is not parsable as is https://bugs.openjdk.java.net/browse/JDK-8031085. hence have to do appendValue()
   private static DateTimeFormatter MILLIS_INSTANT_TIME_FORMATTER = new DateTimeFormatterBuilder().appendPattern(SECS_INSTANT_TIMESTAMP_FORMAT)
       .appendValue(ChronoField.MILLI_OF_SECOND, 3).toFormatter();
+
+  // Adding formatter for seconds back in so that we can generate commit timestamps that Redshift can read
+  // since it is on an older version of Hudi.
+  private static DateTimeFormatter SECS_INSTANT_TIME_FORMATTER = DateTimeFormatter.ofPattern(SECS_INSTANT_TIMESTAMP_FORMAT);
   private static final String MILLIS_GRANULARITY_DATE_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS";
   private static DateTimeFormatter MILLIS_GRANULARITY_DATE_FORMATTER = DateTimeFormatter.ofPattern(MILLIS_GRANULARITY_DATE_FORMAT);
 
@@ -74,7 +78,7 @@ public class HoodieInstantTimeGenerator {
           newCommitTime = now.format(MILLIS_INSTANT_TIME_FORMATTER);
         } else {
           Date d = new Date(System.currentTimeMillis() + milliseconds);
-          newCommitTime = MILLIS_INSTANT_TIME_FORMATTER.format(convertDateToTemporalAccessor(d));
+          newCommitTime = SECS_INSTANT_TIME_FORMATTER.format(convertDateToTemporalAccessor(d));
         }
       } while (HoodieTimeline.compareTimestamps(newCommitTime, HoodieActiveTimeline.LESSER_THAN_OR_EQUALS, oldVal));
       return newCommitTime;
@@ -113,7 +117,7 @@ public class HoodieInstantTimeGenerator {
   }
 
   public static String getInstantFromTemporalAccessor(TemporalAccessor temporalAccessor) {
-    return MILLIS_INSTANT_TIME_FORMATTER.format(temporalAccessor);
+    return SECS_INSTANT_TIME_FORMATTER.format(temporalAccessor);
   }
 
   /**
